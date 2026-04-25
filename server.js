@@ -5,7 +5,21 @@ const port = process.env.PORT || 3000;
 
 const server = createServer(async (req, res) => {
   try {
-    const response = await handler.fetch(req);
+    const protocol = req.headers["x-forwarded-proto"] || "http";
+    const host = req.headers.host || `localhost:${port}`;
+    const url = `${protocol}://${host}${req.url}`;
+
+    const body =
+      req.method === "GET" || req.method === "HEAD" ? undefined : req;
+
+    const request = new Request(url, {
+      method: req.method,
+      headers: req.headers,
+      body,
+      duplex: "half"
+    });
+
+    const response = await handler.fetch(request);
 
     res.writeHead(response.status, Object.fromEntries(response.headers));
 
