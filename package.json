@@ -13,7 +13,7 @@
     "preview": "vite preview",
     "lint": "eslint .",
     "format": "prettier --write .",
-    "start": "node .output/server/index.mjs"
+    "start": "node server.js"
   },
   "dependencies": {
     "@lovable.dev/vite-tanstack-config": "^1.3.0",
