@@ -1,10 +1,10 @@
 import { createServer } from "http";
 import { createReadStream, existsSync, readdirSync } from "fs";
 import { join, extname } from "path";
-import handler from "./dist/server/index.js";
+import handler from "/app/dist/server/index.js";
 
 const port = process.env.PORT || 3000;
-const clientDir = join(process.cwd(), "dist", "client");
+const clientDir = "/app/dist/client";
 
 const mimeTypes = {
   ".js": "application/javascript",
@@ -27,14 +27,22 @@ const server = createServer(async (req, res) => {
       const assetsDir = join(clientDir, "assets");
 
       res.writeHead(200, { "Content-Type": "application/json" });
-      res.end(JSON.stringify({
-        cwd: process.cwd(),
-        clientDir,
-        clientExists: existsSync(clientDir),
-        assetsDir,
-        assetsExists: existsSync(assetsDir),
-        files: existsSync(assetsDir) ? readdirSync(assetsDir).slice(0, 30) : []
-      }, null, 2));
+      res.end(
+        JSON.stringify(
+          {
+            cwd: process.cwd(),
+            clientDir,
+            clientExists: existsSync(clientDir),
+            assetsDir,
+            assetsExists: existsSync(assetsDir),
+            files: existsSync(assetsDir)
+              ? readdirSync(assetsDir).slice(0, 50)
+              : []
+          },
+          null,
+          2
+        )
+      );
       return;
     }
 
@@ -46,10 +54,12 @@ const server = createServer(async (req, res) => {
 
       if (existsSync(filePath)) {
         const ext = extname(filePath);
+
         res.writeHead(200, {
           "Content-Type": mimeTypes[ext] || "application/octet-stream",
           "Cache-Control": "public, max-age=31536000, immutable"
         });
+
         createReadStream(filePath).pipe(res);
         return;
       }
@@ -58,6 +68,16 @@ const server = createServer(async (req, res) => {
       res.writeHead(404);
       res.end("Asset not found");
       return;
+    }
+
+    if (urlPath === "/favicon.ico") {
+      const faviconPath = join(clientDir, "favicon.ico");
+
+      if (existsSync(faviconPath)) {
+        res.writeHead(200, { "Content-Type": "image/x-icon" });
+        createReadStream(faviconPath).pipe(res);
+        return;
+      }
     }
 
     const protocol = req.headers["x-forwarded-proto"] || "https";
@@ -77,9 +97,12 @@ const server = createServer(async (req, res) => {
 
     if (response.body) {
       const reader = response.body.getReader();
+
       while (true) {
         const { done, value } = await reader.read();
+
         if (done) break;
+
         res.write(Buffer.from(value));
       }
     }
@@ -87,6 +110,7 @@ const server = createServer(async (req, res) => {
     res.end();
   } catch (error) {
     console.error("Erro no servidor:", error);
+
     res.statusCode = 500;
     res.end("Erro interno no servidor");
   }
